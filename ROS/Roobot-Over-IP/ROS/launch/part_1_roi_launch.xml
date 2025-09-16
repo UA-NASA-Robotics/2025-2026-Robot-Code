@@ -1,0 +1,81 @@
+<launch>
+    <arg name="network-address" default="192.168.2.79"/>
+
+    <group>
+        <group> 
+            <node pkg="roi_ros" 
+            exec="transportAgent.py" 
+            name="transportAgent">
+            <param name="network_address" value="$(var network-address)"/>
+            <param name="timeout" value="0.050"/>
+            <param name="max_retries" value="10" />
+            <param name="lost_to_disconnect" value="1"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/uno"/>
+            </node>
+
+            <node pkg="roi_ros" 
+            exec="transportAgent.py" 
+            name="transportAgenttwo">
+            <param name="network_address" value="$(var network-address)"/>
+            <param name="timeout" value="0.050"/>
+            <param name="max_retries" value="10" />
+            <param name="lost_to_disconnect" value="1"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/dos"/>
+            </node>
+
+            <node pkg="roi_ros" 
+            exec="transportAgent.py" 
+            name="transportAgentthree">
+            <param name="network_address" value="$(var network-address)"/>
+            <param name="timeout" value="0.050"/>
+            <param name="max_retries" value="10" />
+            <param name="lost_to_disconnect" value="1"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/tres"/>
+            </node>
+        </group>
+
+        <group>
+            <!-- Actuators -->
+            <node pkg="roi_ros"
+            exec="Actuator"
+            name="actuator1">
+            <param name="module_octet" value="25" />
+            <param name="max_velocity" value="85.0" />
+            <param name="max_torque" value="1.5" />
+            <remap from="/set_velocity" to="/set_velocity/act1"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/cinco"/>
+            </node>
+
+            <node pkg="roi_ros"
+            exec="Actuator"
+            name="actuator2">
+            <param name="module_octet" value="25" />
+            <param name="max_velocity" value="85.0" />
+            <param name="max_torque" value="1.5" />
+            <remap from="/set_velocity" to="/set_velocity/act2"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/seis"/>
+            </node>
+        </group>
+
+        <group>
+
+            <!-- Rear Right Wheel-->
+            <node pkg="roi_ros"
+            exec="oDrive"
+            name="oDrive_RR">
+            <remap from="/state" to="/state/RR"/>
+            <remap from="/power" to="/power/RR"/>
+            <remap from="/temperature" to="/temperature/RR"/>
+            <remap from="/goto_position" to="/goto_position/RR"/>
+            <remap from="/goto_relative_position" to="/goto_relative_position/RR"/>
+            <remap from="/set_velocity" to="/set_velocity/RR"/>
+            <remap from="/set_torque" to="/set_torque/RR"/>
+            <remap from="/queue_general_packet" to="/queue_general_packet/uno"/>
+
+            <param name="module_octet" value="38" />
+            <param name="max_velocity" value="101.0" />
+            <param name="max_torque" value="1.5" />
+            </node>
+        </group>
+    </group>
+</launch>
