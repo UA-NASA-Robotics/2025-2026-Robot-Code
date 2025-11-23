@@ -66,6 +66,7 @@ class ControlNode(Node):
         self.keyboard_sub = self.create_subscription(Key, "keydown", self.keyboard_callback, 10)
         self.is_keyboard_movement = False
 
+        ### This code needed, don't touch[
         self.oDrive1 = self.create_client(ODriveSetVelocity, "/oDrive1")
         self.oDrive2 = self.create_client(ODriveSetVelocity, "/oDrive2")
         self.oDrive3 = self.create_client(ODriveSetVelocity, "/oDrive3")
@@ -91,14 +92,11 @@ class ControlNode(Node):
         self.act1_update = 1
         self.act2_update = 1
 
+        ### ]
+
         self.digMacroThread = threading.Thread(target=self.digMacro, daemon=True)
         self.dumpMacroThread = threading.Thread(target=self.dumpMacro, daemon=True)
-        self.nNavThread = threading.Thread(target=self.nav_north, daemon=True)
-        self.sNavThread = threading.Thread(target=self.nav_south, daemon=True)
-        self.eNavThread = threading.Thread(target=self.nav_east, daemon=True)
-        self.wNavThread = threading.Thread(target=self.nav_west, daemon=True)
-        self.threeDigMacroThread = threading.Thread(target=self.three_dig_macro, daemon=True)
-        self.keyboard_macro = threading.Thread(target=self.keyboard_run_macro, daemon=True)
+
 
     def calculateRPM(self):
         """
@@ -118,8 +116,8 @@ class ControlNode(Node):
 
         wheel_speeds = [5.0, 5.0]
 
-        key_translation_linear = {97: 1, 115: 2, 100: 3, 102: 4} # Time in seconds for moving forward
-        key_translation_angular = {106: 1, 107: 2, 108: 3, 59: 4, 117: -1, 105: -2, 111: -3, 112: -4} # Time in seconds for rotating, negative counterclockwise
+        key_translation_linear = {97: 1, 115: 2, 100: 3, 102: 4} # Time in seconds for moving forward, depending on keyboard input keycode
+        key_translation_angular = {106: 1, 107: 2, 108: 3, 59: 4, 117: -1, 105: -2, 111: -3, 112: -4} # Time in seconds for rotating, negative counterclockwise, depending on keyboard input keycode
 
         distance_time = key_translation_linear.get(keyboard_code, 0)
         turn_time = key_translation_angular.get(keyboard_code, 0)
@@ -195,7 +193,7 @@ class ControlNode(Node):
         self.forwardVelocity = msg.linear.x
         self.angularVelocity = msg.angular.z
 
-        if not self.is_keyboard_movement and not self.digMacroThread.is_alive() and not self.dumpMacroThread.is_alive() and not self.nNavThread.is_alive() and not self.sNavThread.is_alive() and not self.wNavThread.is_alive() and not self.eNavThread.is_alive() and not self.threeDigMacroThread.is_alive():
+        if not self.is_keyboard_movement and not self.digMacroThread.is_alive() and not self.dumpMacroThread.is_alive() and not self.threeDigMacroThread.is_alive():
             self.left_wheel_speed, self.right_wheel_speed = self.calculateRPM()
             self.request_set_velocity()
 
@@ -207,26 +205,6 @@ class ControlNode(Node):
         if self.buttonArray.button_actuator_dump_cycle == 1:
             if not self.dumpMacroThread.is_alive():
                 self.dumpMacroThread = threading.Thread(target=self.dumpMacro, daemon=True)
-                self.dumpMacroThread.start()
-
-        if self.buttonArray.button_wheel_nav_north == 1:
-            if not self.dumpMacroThread.is_alive():
-                self.dumpMacroThread = threading.Thread(target=self.nav_north, daemon=True)
-                self.dumpMacroThread.start()
-
-        if self.buttonArray.button_wheel_nav_east == 1:
-            if not self.dumpMacroThread.is_alive():
-                self.dumpMacroThread = threading.Thread(target=self.nav_east, daemon=True)
-                self.dumpMacroThread.start()
-
-        if self.buttonArray.button_wheel_nav_south == 1:
-            if not self.dumpMacroThread.is_alive():
-                self.dumpMacroThread = threading.Thread(target=self.nav_south, daemon=True)
-                self.dumpMacroThread.start()
-        
-        if self.buttonArray.button_wheel_nav_west == 1:
-            if not self.dumpMacroThread.is_alive():
-                self.dumpMacroThread = threading.Thread(target=self.nav_west, daemon=True)
                 self.dumpMacroThread.start()
 
         if self.buttonArray.button_actuator_arm_up == 1:
@@ -244,12 +222,12 @@ class ControlNode(Node):
                 self.act1_update = 1
             self.actuatorMessage1.velocity = 0.0
 
-        if self.buttonArray.button_actuator_pitch_up == 1:
+        if self.buttonArray.button_actuator_deposition_up == 1:
             if self.actuatorMessage2.velocity != 100.0:
                 self.act2_update = 1
             self.actuatorMessage2.velocity = 100.0
 
-        elif self.buttonArray.button_actuator_pitch_down == 1:
+        elif self.buttonArray.button_actuator_deposition_down == 1:
             if self.actuatorMessage2.velocity != -100.0:
                 self.act2_update = 1
             self.actuatorMessage2.velocity = -100.0
@@ -271,12 +249,13 @@ class ControlNode(Node):
                 self.get_logger().info(str(self.actuatorMessage2) + " was message to actuator2")
                 self.act2_update = 0
 
+    # Will need reworked for new robot, do NOT use
     def digMacro(self, depth=0):
         """Dig Macro. Actuator 1 goes down, act 2 goes up, then slightly down.
         then wheels forward for x secs."""
 
         # NOTE: positive is up for both actuators, negative is down
-        # NOTE: actuator1 is pitch and 2 is arm
+        # NOTE: actuator1 is the deposition bucket actuator and 2 is arm/dig bucket actuator
 
         #
         ## home arm all the way up put bucket perpendicular to ground
@@ -413,102 +392,6 @@ class ControlNode(Node):
         self.request_set_velocity()
         self.request_set_velocity()
         self.get_logger().info("stop wheel")
-
-    def nav_north(self):
-        """Literal shot in the dark"""
-
-        self.left_wheel_speed, self.right_wheel_speed = 5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        if not self.cancelSleep(45):
-            return
-        
-
-        self.left_wheel_speed, self.right_wheel_speed = 0.0, 0.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        self.get_logger().info("done, welcome to the dig zone?")
-
-    def nav_east(self):
-        """Literal shot in the dark"""
-
-        self.left_wheel_speed, self.right_wheel_speed = -5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        # turning
-        if not self.cancelSleep(3.5):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        if not self.cancelSleep(45):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 0.0, 0.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-        
-        self.get_logger().info("done, welcome to the dig zone?")
-
-    def nav_west(self):
-        """Literal shot in the dark"""
-
-        self.left_wheel_speed, self.right_wheel_speed = 5.0, -5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        # turning
-        if not self.cancelSleep(3.5):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        if not self.cancelSleep(45):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 0.0, 0.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-        
-        self.get_logger().info("done, welcome to the dig zone?")
-
-
-    def nav_south(self):
-        """Literal shot in the dark"""
-
-        self.left_wheel_speed, self.right_wheel_speed = -5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        # turning
-        if not self.cancelSleep(7):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 5.0, 5.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-
-        if not self.cancelSleep(45):
-            return
-
-
-        self.left_wheel_speed, self.right_wheel_speed = 0.0, 0.0
-        self.request_set_velocity()
-        self.request_set_velocity()
-        
-        self.get_logger().info("done, welcome to the dig zone?")
 
     def cancelSleep(self, seconds):
         """

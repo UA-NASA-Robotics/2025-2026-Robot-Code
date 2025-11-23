@@ -56,7 +56,7 @@ This class has a tree with different macro dependencies
 Control
     ├── Actuators
     │   ├── arm
-    |   └── pitch
+    |   └── deposition
     └── Wheels
 """
 class MacroConflicts(Node):

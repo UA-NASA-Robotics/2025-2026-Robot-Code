@@ -24,7 +24,7 @@ class ControllerInterpreter(Node):
             '',                 # Right Stick X
             'right_drive',      # Right Stick Y
             'actuator_arm_down',                 # Left Trigger (L2)
-            'actuator_pitch_down',                 # Right Trigger (R2)
+            'actuator_deposition_down',                 # Right Trigger (R2)
         ]
         button_map = [
             'actuator_dig_cycle',       # A (X)
@@ -37,11 +37,11 @@ class ControllerInterpreter(Node):
             '',                         # Left Stick
             '',                         # Right Stick
             'actuator_arm_up',                         # Left Bumper (L1)
-            'actuator_pitch_up',                         # Right Bumper (R1)
-            'wheel_nav_north',                         # D-Pad Up
-            'wheel_nav_south',                         # D-Pad Down
-            'wheel_nav_west',                         # D-Pad Left
-            'wheel_nav_east',                         # D-Pad Right
+            'actuator_deposition_up',                         # Right Bumper (R1)
+            '',                         # D-Pad Up
+            '',                         # D-Pad Down
+            '',                         # D-Pad Left
+            '',                         # D-Pad Right
         ]
 
         # Don't send many null packets (reduce bandwidth usage)
@@ -114,7 +114,7 @@ class ControllerInterpreter(Node):
         else:
             output.buttons.button_wheel_ismoving = False
 
-        actuator_pitch_down_bool = input.axes[axes.index('actuator_pitch_down')]
+        actuator_deposition_down_bool = input.axes[axes.index('actuator_deposition_down')]
         actuator_arm_down_bool = input.axes[axes.index('actuator_arm_down')]
 
         #self.get_logger().info(str(actuator_arm_down_bool))
@@ -124,10 +124,10 @@ class ControllerInterpreter(Node):
         else:
             output.buttons.button_actuator_arm_down = False
 
-        if actuator_pitch_down_bool <= -0.5:
-            output.buttons.button_actuator_pitch_down = True
+        if actuator_deposition_down_bool <= -0.5:
+            output.buttons.button_actuator_deposition_down = True
         else:
-            output.buttons.button_actuator_pitch_down = False 
+            output.buttons.button_actuator_deposition_down = False 
 
         # Return the output
         return output

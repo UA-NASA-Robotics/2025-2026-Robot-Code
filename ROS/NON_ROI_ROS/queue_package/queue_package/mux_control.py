@@ -49,7 +49,6 @@ class RequestHandler(Node):
         @param msg The TwistPlus message to check for movement
         @return True if any linear or angular velocity component exceeds 5% of full range, False otherwise
         """
-        # print('hi' if getattr(msg.buttons, '_button_control_autonomy_enable'[1:]) else "bye")
         buttons = [button[1:] for button in msg.buttons.__slots__ if button.__contains__('button')]
         return any([getattr(msg.buttons, button_name) for button_name in buttons])
 
