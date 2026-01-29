@@ -67,13 +67,17 @@ class ControlNode(Node):
         self.is_keyboard_movement = False
 
         ### This code needed, don't touch[
+        # Drive motors
         self.oDrive1 = self.create_client(ODriveSetVelocity, "/oDrive1")
         self.oDrive2 = self.create_client(ODriveSetVelocity, "/oDrive2")
         self.oDrive3 = self.create_client(ODriveSetVelocity, "/oDrive3")
         self.oDrive4 = self.create_client(ODriveSetVelocity, "/oDrive4")
 
+        # Deposistion Motor
+        self.oDrive5 = self.create_client(ActuatorSetVelocity, "/oDrive5")
+        dep_oDrive_vel = 0.0
+
         self.actuator1 = self.create_client(ActuatorSetVelocity, "/actuator1")
-        self.actuator2 = self.create_client(ActuatorSetVelocity, "/actuator2")
 
         self.forwardVelocity = None
         self.angularVelocity = None
@@ -82,15 +86,16 @@ class ControlNode(Node):
         self.theQue = queue.Queue()
         self.left_wheel_speed = None
         self.right_wheel_speed = None
+        self.deposition_odrive_speed = None
 
         self.actuatorMessage1 = ActuatorSetVelocity.Request()
-        self.actuatorMessage2 = ActuatorSetVelocity.Request()
-
+        
+        # Sub device ID is sent in the ROI packet to select between different actuators on the board
         self.actuatorMessage1.sub_device_id = 0
-        self.actuatorMessage2.sub_device_id = 1
 
+        # Used to prevent sending packets if velocity has not changed
         self.act1_update = 1
-        self.act2_update = 1
+        self.dep_oDrive_update = 1
 
         ### ]
 
@@ -199,7 +204,7 @@ class ControlNode(Node):
 
         if self.buttonArray.button_actuator_dig_cycle == 1:
             if not self.digMacroThread.is_alive():
-                self.digMacroThread = threading.Thread(target=self.three_dig_macro, daemon=True)
+                self.digMacroThread = threading.Thread(target=self.dig_macro, daemon=True)
                 self.digMacroThread.start()
 
         if self.buttonArray.button_actuator_dump_cycle == 1:
@@ -223,19 +228,19 @@ class ControlNode(Node):
             self.actuatorMessage1.velocity = 0.0
 
         if self.buttonArray.button_actuator_deposition_up == 1:
-            if self.actuatorMessage2.velocity != 100.0:
-                self.act2_update = 1
-            self.actuatorMessage2.velocity = 100.0
+            if self.dep_oDrive_vel != 100.0:
+                self.dep_oDrive_update = 1
+            self.dep_oDrive_vel = 100.0
 
         elif self.buttonArray.button_actuator_deposition_down == 1:
-            if self.actuatorMessage2.velocity != -100.0:
-                self.act2_update = 1
-            self.actuatorMessage2.velocity = -100.0
+            if self.dep_oDrive_vel != -100.0:
+                self.dep_oDrive_update = 1
+            self.dep_oDrive_vel = -100.0
 
         else:
-            if self.actuatorMessage2.velocity != 0:
-                self.act2_update = 1
-            self.actuatorMessage2.velocity = 0.0
+            if self.dep_oDrive_vel != 0:
+                self.dep_oDrive_update = 1
+            self.dep_oDrive_vel = 0.0
 
         if not self.digMacroThread.is_alive() and not self.dumpMacroThread.is_alive():
 
@@ -244,8 +249,8 @@ class ControlNode(Node):
                 self.get_logger().info(str(self.actuatorMessage1) + " was message to actuator1")
                 self.act1_update = 0
 
-            if self.act2_update == 1:
-                act2_result = self.actuator2.call_async(self.actuatorMessage2)
+            if self.dep_oDrive_update == 1:
+                self.set_dep_oDrive_vel(self.dep_oDrive_vel)
                 self.get_logger().info(str(self.actuatorMessage2) + " was message to actuator2")
                 self.act2_update = 0
 
@@ -411,10 +416,28 @@ class ControlNode(Node):
         self.actuator1.call_async(self.actuatorMessage1)
         self.actuator1.call_async(self.actuatorMessage1)
 
-    def act2(self, velocity = 0.0):
+    def set_dep_oDrive_vel(self, velocity = 0.0):
         self.actuatorMessage2.velocity = float(velocity)
         self.actuator2.call_async(self.actuatorMessage2)
         self.actuator2.call_async(self.actuatorMessage2)
+        """
+        Sends request to wheels based on control
+        """
+
+        dep_message = ODriveSetVelocity.Request()
+
+        # Set Left side speed and torque
+
+        dep_message.velocity = 2
+        dep_message.torque_feedforward = 0.0
+
+        # Send request to server, and don't hold up waiting for response
+        # self.get_logger().info(str(left_message))
+        dep_future1 = self.oDrive5.call_async(dep_message)
+
+        dep_message.velocity = 2
+
+        dep_future2 = self.oDrive5.call_async(dep_message)
         
 
 # standard node main function

@@ -24,7 +24,7 @@
                 <remap from="/oDrive4" to="/set_velocity/RR"/>
 
                 <remap from="/actuator1" to="/set_velocity/act1"/>
-                <remap from="/actuator2" to="/set_velocity/act2"/>
+                <remap from="/oDrive5" to="/set_velocity/dep_oDrive"/>
             </node>
         </group>
 
